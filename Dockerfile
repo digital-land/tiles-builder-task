@@ -14,13 +14,6 @@ RUN git clone https://github.com/mapbox/tippecanoe.git \
     && make -j \
     && make install
 
-RUN mkdir -p /task
-WORKDIR /task
-
 COPY ./build.sh .
-COPY ./build_tiles.py .
-COPY ./requirements.txt .
-RUN pip install --user -U pip
-RUN pip install --user --no-cache-dir -r requirements.txt
 
-ENTRYPOINT ["bash", "build.sh"]
+CMD ["bash", "build.sh"]

@@ -1,11 +1,9 @@
-name: Deploy Task
+name: Publish
 
 on:
   push:
-    paths:
-      - 'task/**'
-      - '.github/workflows/deploy-task.yml'
-      - 'tests/**'
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -13,48 +11,27 @@ on:
         description: The environment to deploy to (select a -task environment).
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
-      - run: make init
-      - run: make lint
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  # test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.8
-
-      - name: install tipcannoe
-        run: |
-          git clone https://github.com/mapbox/tippecanoe.git \
-          && cd tippecanoe \
-          && make -j \
-          && sudo make install
-
-      - run: make init
-
-      - name: tests Tests
-        run: |
-          make test
+      # - name: install tipcannoe
+      #   run: |
+      #     git clone https://github.com/mapbox/tippecanoe.git \
+      #     && cd tippecanoe \
+      #     && make -j \
+      #     && sudo make install
 
   detect-environments:
     runs-on: ubuntu-latest
     outputs:
       environments: ${{ steps.environments.outputs.result }}
     if: github.ref_name == 'main'
-    needs: [lint,test]
+    # needs: [lint,test]
     steps:
       - uses: actions/github-script@v6
         id: environments
@@ -65,16 +42,16 @@ jobs:
             if (context.payload?.inputs?.environment) return [context.payload?.inputs?.environment];
             const {data: {environments}} =
               await github.request(`GET /repos/${process.env.GITHUB_REPOSITORY}/environments`);
-            return environments.map(e => e.name).filter(e => e.indexOf('-task') != -1)
+            return environments.map(e => e.name)
 
-  deploy:
+  publish:
     runs-on: ubuntu-latest
     env:
       DOCKER_REPO: ${{ secrets.DEPLOY_DOCKER_REPOSITORY }}
     needs: [detect-environments]
     strategy:
       matrix:
-        environment: ${{ fromJSON(needs.detect-environments.outputs.environments) }}
+        environment: ${{ fromJSON(needs.detect-environments.outputs.environments)}}
     environment: ${{ matrix.environment }}
     if: github.ref_name == 'main'
     steps:
@@ -101,7 +78,6 @@ jobs:
       - run: docker pull $DOCKER_REPO:latest || echo "no current latest image"
 
       - run: docker build -t $DOCKER_REPO:${{ steps.vars.outputs.sha_short }} .
-        working-directory: ./task
 
       - run: docker tag $DOCKER_REPO:${{ steps.vars.outputs.sha_short }} $DOCKER_REPO:latest
 

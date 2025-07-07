@@ -30,3 +30,6 @@ dataset/
 .direnv
 .python-version
 files/
+
+tiles/
+cache/

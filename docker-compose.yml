@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  tiles-builder:
+    build: .
+    user: "${UID}:${GID}"
+    environment:
+      DATASET: central-activities-zone
+    volumes:
+      - ./tiles:/tiles
