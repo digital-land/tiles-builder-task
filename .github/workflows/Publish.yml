@@ -1,22 +1,37 @@
-name: Deploy Application
+name: Publish
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - 'application/**'
-      - '.github/workflows/deploy-application.yml'
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       environment:
         type: environment
-        description: The environment to deploy to (select an -application environment).
+        description: The environment to deploy to (select a -task environment).
 
 jobs:
+
+  # test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+
+      # - name: install tipcannoe
+      #   run: |
+      #     git clone https://github.com/mapbox/tippecanoe.git \
+      #     && cd tippecanoe \
+      #     && make -j \
+      #     && sudo make install
+
   detect-environments:
     runs-on: ubuntu-latest
     outputs:
       environments: ${{ steps.environments.outputs.result }}
+    if: github.ref_name == 'main'
+    # needs: [lint,test]
     steps:
       - uses: actions/github-script@v6
         id: environments
@@ -27,17 +42,18 @@ jobs:
             if (context.payload?.inputs?.environment) return [context.payload?.inputs?.environment];
             const {data: {environments}} =
               await github.request(`GET /repos/${process.env.GITHUB_REPOSITORY}/environments`);
-            return environments.map(e => e.name).filter(e => e.indexOf('-application') != -1)
+            return environments.map(e => e.name)
 
-  deploy:
+  publish:
     runs-on: ubuntu-latest
     env:
       DOCKER_REPO: ${{ secrets.DEPLOY_DOCKER_REPOSITORY }}
-    needs: [ detect-environments ]
+    needs: [detect-environments]
     strategy:
       matrix:
-        environment: ${{ fromJSON(needs.detect-environments.outputs.environments) }}
+        environment: ${{ fromJSON(needs.detect-environments.outputs.environments)}}
     environment: ${{ matrix.environment }}
+    if: github.ref_name == 'main'
     steps:
       - uses: actions/checkout@v4
 
@@ -62,7 +78,6 @@ jobs:
       - run: docker pull $DOCKER_REPO:latest || echo "no current latest image"
 
       - run: docker build -t $DOCKER_REPO:${{ steps.vars.outputs.sha_short }} .
-        working-directory: ./application
 
       - run: docker tag $DOCKER_REPO:${{ steps.vars.outputs.sha_short }} $DOCKER_REPO:latest
 
