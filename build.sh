@@ -38,8 +38,15 @@ tippecanoe --no-progress-indicator -z15 -Z4 -r1 --no-feature-limit --no-tile-siz
 echo "tiles built"
 
 if [[ -n "$WRITE_S3_BUCKET" ]]; then
-    echo "uploading tiles to s3 bucket $WRITE_S3_BUCKET"
-    aws s3 sync ./tiles/$DATASET "s3://$WRITE_S3_BUCKET/$DATASET" --delete
+    echo "uploading tiles (.pbf) to s3 bucket $WRITE_S3_BUCKET"
+    aws s3 cp ./tiles/$DATASET s3://$WRITE_S3_BUCKET/$DATASET --recursive \
+        --exclude "*" --include "*.pbf" \
+        --content-type application/x-protobuf \
+        --content-encoding gzip \
+        --quiet
+
+    echo "uploading metadata (.json) to s3 bucket $WRITE_S3_BUCKET"
+    aws s3 cp ./tiles/$DATASET/metadata.json s3://$WRITE_S3_BUCKET/$DATASET/metadata.json --quiet
 else
     echo "WRITE_S3_BUCKET not provided skipping upload to s3"
 fi
