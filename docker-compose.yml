@@ -4,6 +4,17 @@ services:
     build: .
     user: "${UID}:${GID}"
     environment:
-      DATASET: central-activities-zone
+      # build.sh fails if this is empty, set it with e.g. make docker-task DATASET=central-activities-zone
+      DATASET: ${DATASET:-}
     volumes:
       - ./tiles:/tiles
+
+  # only starts when named, e.g. make docker-serve
+  tiles-server:
+    image: nginx:1.27-alpine
+    profiles: [serve]
+    ports:
+      - "${PORT:-8080}:80"
+    volumes:
+      - ./tiles:/usr/share/nginx/html:ro
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro

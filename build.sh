@@ -14,7 +14,10 @@ if [[ -z "$DATASET" ]]; then
     exit 1
 fi
 
-if [[ -n "$READ_S3_BUCKET" ]]; then
+if [[ -n "$GEOJSON_FILE" ]]; then
+    echo "GEOJSON_FILE: $GEOJSON_FILE will be used instead of downloading the dataset"
+    cp "$GEOJSON_FILE" "$GEOJSON_PATH"
+elif [[ -n "$READ_S3_BUCKET" ]]; then
     echo "S3_BUCKET: $READ_S3_BUCKET wil be used to download the geojson for the dataset"
     aws s3api get-object --bucket "$READ_S3_BUCKET" --key "dataset/$DATASET.geojson" "$GEOJSON_PATH" >/dev/null
 else
