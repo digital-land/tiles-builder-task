@@ -34,3 +34,8 @@ pyrightconfig.json
 .env.staging
 .env.production
 .env.sandbox
+# local tiles and downloads are mounted, not copied, so keep them out of the build context
+tiles
+cache
+scripts
+requirements

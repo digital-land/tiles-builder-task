@@ -1,0 +1,6 @@
+# dev tools only, the docker image doesn't use python
+pre-commit
+# acceptance tests
+pytest
+testcontainers
+mapbox-vector-tile

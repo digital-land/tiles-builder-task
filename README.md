@@ -1,39 +1,99 @@
 # Tiles Builder Task
 
-A new taskk to replace the old tiles-builder repo. Instead of being a dual repo containing both a task to generate .mbtiles files and an application to server these  via datasette this repo aimms to only be a task which  instead geneates tilles as files and upload them to a given s3 bucket. The s3 bucket can then be hosted behind a CDN removing the need for costly infrastructure
+Builds vector tiles for one [planning.data.gov.uk](https://www.planning.data.gov.uk) dataset and uploads them to an S3 bucket, where they're served as static files behind a CDN.
 
-## Running locally
+It replaces the old tiles-builder repo, which built `.mbtiles` files and served them with Datasette. Serving static files from S3 removes the need to run a tile server.
 
-Running locally assumes that you  won't have access to AWS so avoids setting any variables which directly read or write to an s3 bucket. if you have  access and want to run locally this is possible but
-we advise running via airflow.
+## How it works
 
-### Prerequisites
+[build.sh](build.sh) does three things for the dataset named in `DATASET`:
 
-# TODO wrrite how to guide
-this task relies on tipcannoe being installed. this can be installed easily and the commands can be found in their github repo. We also have a how to guide for installing on Mac
+1. Gets `<dataset>.geojson`: from a local file, an S3 bucket, or the planning.data.gov.uk files CDN.
+2. Runs [tippecanoe](https://github.com/mapbox/tippecanoe) to build tiles for zoom levels 4 to 15, into `tiles/<dataset>/{z}/{x}/{y}.pbf` with a `metadata.json`.
+3. If `WRITE_S3_BUCKET` is set, uploads them to `s3://<bucket>/<dataset>/` with the headers browsers need to read gzipped tiles.
 
-### Running locally with docker
+[docs/requirements.md](docs/requirements.md) has the full requirements and what checks each one.
 
-To run the service locally run `make application` while authenticated with `aws-vault`. It is advised that you limit the
-number of other tasks running and have a minimum of 6GB free space for the required files.
+## Quick start
 
-To reset the current tiles stored, run `make clean` before running `make application` to start from a clean slate.
+You need Docker. You don't need AWS access: without the S3 settings, the task downloads from the public files CDN and keeps the tiles local.
 
-### Running tiles building locally without docker
-
-The script can be ran by changing into the task directory and running
-
-```
-./build_local.sh
+```bash
+make docker-task DATASET=central-activities-zone   # build tiles into ./tiles
+make docker-serve                                  # serve them at http://localhost:8080
 ```
 
-## Building & Deployment
+Tiles are then at `http://localhost:8080/central-activities-zone/{z}/{x}/{y}.pbf`.
 
-There are two separate GitHub actions [`deploy-application.yml`](.github/workflows/deploy-application.yml) and
-[`deploy-task.yml`](.github/workflows/deploy-task.yml). Each will run when changes are made to their respective
-code directories `./application` and `./task`.
+To view them in a local copy of digital-land.info, see [docs/using-with-digital-land-info.md](docs/using-with-digital-land-info.md).
 
-# Licence
+Large datasets can need several GB of free space. `make clean` deletes all local tiles and downloads.
+
+## Make targets
+
+Run `make` to list them all.
+
+| Target | Does |
+| --- | --- |
+| `make docker-task DATASET=...` | Build tiles in Docker |
+| `make task DATASET=...` | Build tiles without Docker (needs tippecanoe installed) |
+| `make docker-serve` | Serve `./tiles` with nginx in Docker |
+| `make serve` | Serve `./tiles` with Python |
+| `make clean` | Delete `./tiles` and `./cache` |
+| `make init` | Install dev requirements and pre-commit hooks |
+| `make test-acceptance` | Run the acceptance tests (`make test` runs all tests) |
+
+Both serve targets take `PORT=...` (default 8080). They add the gzip and cross-origin headers that map libraries need, so a plain static file server won't work as a substitute.
+
+## Configuration
+
+`build.sh` reads these environment variables. [.env.example](.env.example) has examples.
+
+| Variable | Required | Does |
+| --- | --- | --- |
+| `DATASET` | Yes | The dataset to build tiles for, e.g. `central-activities-zone` |
+| `GEOJSON_FILE` | No | Use this local GeoJSON file instead of downloading one |
+| `READ_S3_BUCKET` | No | Download `dataset/<dataset>.geojson` from this bucket instead of the files CDN |
+| `WRITE_S3_BUCKET` | No | Upload the tiles to this bucket. Without it, nothing is uploaded |
+| `CACHE_DIR` | No | Where downloaded GeoJSON is kept. Defaults to `./cache` |
+
+## Running without Docker
+
+Install tippecanoe (on a Mac, `brew install tippecanoe`), then run:
+
+```bash
+make task DATASET=central-activities-zone
+```
+
+Homebrew installs the maintained [felt/tippecanoe](https://github.com/felt/tippecanoe) fork, while the Docker image builds the older mapbox version, so the output can differ slightly. Use `make docker-task` when you need to match what's deployed.
+
+## Development
+
+Python is only used for development tools and tests. The Docker image doesn't need it.
+
+```bash
+python -m venv .venv            # with pyenv, this uses the version in .python-version
+source .venv/bin/activate
+make init
+```
+
+`make init` refuses to run outside a virtual environment, so it can't install into your global Python.
+
+### Tests
+
+```bash
+make test-acceptance
+```
+
+The acceptance tests in [tests/acceptance](tests/acceptance) use testcontainers to build the Docker image, run it on a small fixture GeoJSON, and check the tiles against [docs/requirements.md](docs/requirements.md). They need Docker running, and run in GitHub Actions on every push to a branch other than `main` ([test.yml](.github/workflows/test.yml)) and before every publish.
+
+The first run takes several minutes because it compiles tippecanoe. Later runs reuse the cached image layers.
+
+## Deployment
+
+[Publish.yml](.github/workflows/Publish.yml) runs on every push to `main`, or manually for a chosen environment. It builds the Docker image and pushes it to each environment's ECR repository. The task is then run from Airflow with `DATASET`, `READ_S3_BUCKET` and `WRITE_S3_BUCKET` set.
+
+## Licence
 
 The software in this project is open source and covered by the [LICENSE](LICENSE) file.
 

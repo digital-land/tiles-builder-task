@@ -1,0 +1,66 @@
+{
+  "type": "FeatureCollection",
+  "name": "test-dataset",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "dataset": "test-dataset",
+        "entity": "1000001",
+        "name": "Test polygon",
+        "reference": "TEST-001",
+        "entry-date": "2024-01-01",
+        "start-date": "2024-01-01",
+        "end-date": "",
+        "organisation-entity": "192",
+        "prefix": "test-dataset",
+        "typology": "geography"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-0.135, 51.500], [-0.125, 51.500], [-0.125, 51.506], [-0.135, 51.506], [-0.135, 51.500]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "dataset": "test-dataset",
+        "entity": "1000002",
+        "name": "Test multipolygon",
+        "reference": "TEST-002",
+        "entry-date": "2024-01-01",
+        "start-date": "2024-01-01",
+        "end-date": "",
+        "organisation-entity": "192",
+        "prefix": "test-dataset",
+        "typology": "geography"
+      },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [[[-0.110, 51.510], [-0.105, 51.510], [-0.105, 51.513], [-0.110, 51.513], [-0.110, 51.510]]],
+          [[[-0.100, 51.510], [-0.095, 51.510], [-0.095, 51.513], [-0.100, 51.513], [-0.100, 51.510]]]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "dataset": "test-dataset",
+        "entity": "1000003",
+        "name": "Test point",
+        "reference": "TEST-003",
+        "entry-date": "2024-01-01",
+        "start-date": "2024-01-01",
+        "end-date": "",
+        "organisation-entity": "192",
+        "prefix": "test-dataset",
+        "typology": "geography"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-0.090, 51.520]
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+name: Test
+run-name: Test - ${{ github.head_ref || github.ref_name }} by @${{ github.actor }}
+
+on:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+
+      # make init refuses to install outside a virtual environment
+      - name: Create virtual environment
+        run: |
+          python -m venv .venv
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - run: make init
+
+      - name: Acceptance Tests
+        run: make test-acceptance

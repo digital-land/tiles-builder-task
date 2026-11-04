@@ -28,8 +28,8 @@ dataset/
 .idea
 
 .direnv
-.python-version
 files/
 
 tiles/
 cache/
+.pytest_cache/
